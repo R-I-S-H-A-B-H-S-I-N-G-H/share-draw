@@ -1,17 +1,25 @@
 import React, { useEffect, useRef } from "react";
-import { io } from "socket.io-client";
+import { connect, io } from "socket.io-client";
 import config from "../../config/config";
+import { useParams } from "react-router-dom";
 
 const socket = io.connect(config.socketEndpoint);
 
 export default function CanvasDraw() {
+	const { id: roomId } = useParams();
+
 	const canvasRef = useRef();
 	const canvasUtilRef = useRef();
 
 	useEffect(() => {
+		connectToRoom(roomId);
 		setupSocketListeners();
 		initCanvasListeners();
 	}, []);
+
+	function connectToRoom(roomId) {
+		socket.emit("join-room", roomId);
+	}
 
 	function setupSocketListeners() {
 		socket.on("receieve_message", updateCanvas);
@@ -20,9 +28,10 @@ export default function CanvasDraw() {
 	function initCanvasListeners() {
 		if (!canvasRef.current) return;
 		canvasUtilRef.current = CanvasUtil.init(canvasRef.current, 400, 400);
+		canvasUtilRef.current.background(200, 100);
+
 		canvasUtilRef.current.onChange(onCanvasChangeHandler);
 		canvasUtilRef.current.onMouseMove(onMouseMoveHandler);
-		canvasUtilRef.current.background(200, 100);
 	}
 
 	function onMouseMoveHandler(mouseEvent) {
@@ -38,7 +47,7 @@ export default function CanvasDraw() {
 	function onCanvasChangeHandler(change) {
 		const { other } = change;
 		if (other) return;
-		sendMessage(change);
+		sendMessage(change, roomId);
 	}
 
 	function updateCanvas(data) {
