@@ -1,9 +1,11 @@
 import React, { useEffect, useRef } from "react";
-import { connect, io } from "socket.io-client";
+import { io } from "socket.io-client";
 import config from "../../config/config";
 import { useParams } from "react-router-dom";
+import { loadScript } from "../utils/Util";
 
 const socket = io.connect(config.socketEndpoint);
+const canvasLibUrl = config.canvasLibUrl;
 
 export default function CanvasDraw() {
 	const { id: roomId } = useParams();
@@ -11,11 +13,20 @@ export default function CanvasDraw() {
 	const canvasRef = useRef();
 	const canvasUtilRef = useRef();
 
+	function loadCanvasUtil() {
+		return loadScript(canvasLibUrl, document);
+	}
+
 	useEffect(() => {
+		initCanvas();
+	}, []);
+
+	async function initCanvas() {
+		await loadCanvasUtil();
 		connectToRoom(roomId);
 		setupSocketListeners();
 		initCanvasListeners();
-	}, []);
+	}
 
 	function connectToRoom(roomId) {
 		socket.emit("join-room", roomId);
